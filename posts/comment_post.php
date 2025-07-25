@@ -13,3 +13,5 @@ $stmt->execute();
 
 header("Location: view_post.php?id=$postId");
 ?>
+
+
