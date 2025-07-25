@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html lang="en">
 <footer>
     <div class="footer-container">
         <div class="footer-logo">🎮 Gamers Community</div>
@@ -12,3 +14,16 @@
         </div>
     </div>
 </footer>
+<script>
+// Wait until all DOM content is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  const header = document.querySelector('header');
+  
+  if (header) { // Extra safety check
+    window.addEventListener('scroll', function() {
+      header.classList.toggle('scrolled', window.scrollY > 100);
+    }, { passive: true });
+  }
+});
+</script>
+</html>
