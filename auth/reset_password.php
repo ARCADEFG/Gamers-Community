@@ -28,8 +28,8 @@ $valid_token = false;
 $token = $_GET['token'] ?? '';
 
 if ($token) {
-    // Verify token exists and isn't expired
-    $stmt = $conn->prepare("SELECT id FROM users WHERE reset_token = ? AND reset_expires > NOW()");
+    // Verify token exists and isn't expired - CHANGED TO reset_token_expiry
+    $stmt = $conn->prepare("SELECT id FROM users WHERE reset_token = ? AND reset_token_expiry > NOW()");
     $stmt->bind_param("s", $token);
     $stmt->execute();
     $stmt->store_result();
@@ -53,9 +53,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $valid_token) {
         } elseif ($password !== $confirm_password) {
             $error = "❌ Passwords don't match.";
         } else {
-            // Update password and clear reset token
+            // Update password and clear reset token - CHANGED TO reset_token_expiry
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $update = $conn->prepare("UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE reset_token = ?");
+            $update = $conn->prepare("UPDATE users SET password = ?, reset_token = NULL, reset_token_expiry = NULL WHERE reset_token = ?");
             $update->bind_param("ss", $hashed_password, $token);
             
             if ($update->execute()) {
