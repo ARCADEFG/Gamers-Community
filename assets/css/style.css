@@ -1,3 +1,31 @@
+/* Comments Section Styles */
+.comments-list {
+  margin: 1.5em 0 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.comment-card {
+  background: #232323;
+  padding: 1em 1.2em;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transition: box-shadow 0.2s;
+}
+.comment-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+}
+.comment-header {
+  font-weight: 600;
+  margin-bottom: 0.3em;
+}
+.comment-content {
+  color: #eee;
+  font-size: 1em;
+  line-height: 1.5;
+}
 :root {
   --primary: #6a11cb;
   --secondary: #2575fc;
@@ -21,9 +49,9 @@ header {
   text-align: center;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   border-bottom: 2px solid var(--primary);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  position: relative;
+  top: unset;
+  z-index: unset;
 }
 
 .header-content {
@@ -153,9 +181,27 @@ footer {
 }
 
 /* LOgin Style */
+/* Consistent container for all main content */
+.container, .main-content {
+  max-width: 800px;
+  margin: 2em auto;
+  width: 100%;
+  padding: 0 1em;
+  box-sizing: border-box;
+}
+
+.post-card {
+  width: 100%;
+  margin-bottom: 2em;
+}
+
+.posts-section {
+  width: 100%;
+}
+
 .form-section {
-    max-width: 400px;
-    margin: 3em auto;
+    max-width: 800px;
+    margin: 2em auto;
     background: #2b2b2b;
     padding: 2em;
     border-radius: 8px;

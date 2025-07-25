@@ -1,9 +1,8 @@
 <?php
+
 session_start();
-session_destroy();
 include '../config/db.php';
-header("Location: ../index.php");
-exit;
+
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email    = $_POST['email'];
@@ -20,17 +19,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if (password_verify($password, $hashed)) {
             $_SESSION['user_id'] = $id;
             $_SESSION['username'] = $username;
-            echo "✅ Logged in successfully. <a href='../index.php'>Go to Home</a>";
+            header("Location: ../index.php");
+            exit;
         } else {
-            echo "❌ Invalid password.";
+            $error = "❌ Invalid password.";
         }
     } else {
-        echo "❌ No user found.";
+        $error = "❌ No user found.";
     }
     $stmt->close();
 }
 ?>
 
+
+if (isset($error)) {
+    echo '<div style="color:red;">' . $error . '</div>';
+}
+
+?>
 <form method="POST">
     <input name="email" type="email" required placeholder="Email"><br>
     <input name="password" type="password" required placeholder="Password"><br>

@@ -1,9 +1,27 @@
+echo "<h2>Your Profile</h2>";
+echo "<p>Username: $username</p>";
+echo "<p>Email: $email</p>";
+echo "<p>Phone: $phone</p>";
+echo "<hr><h3>Your Posts</h3>";
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Profile</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<?php include '../includes/header.php'; ?>
 <?php
 session_start();
 include '../config/db.php';
 
 if (!isset($_SESSION['user_id'])) {
-    echo "Please <a href='../auth/login.php'>login</a>.";
+    echo "<div class='error'>Please <a href='../auth/login.php'>login</a>.</div>";
+    include '../includes/footer.php';
+    echo '</body></html>';
     exit;
 }
 
@@ -33,3 +51,6 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 ?>
+<?php include '../includes/footer.php'; ?>
+</body>
+</html>
