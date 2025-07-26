@@ -10,11 +10,27 @@ $stmt = $conn->prepare("SELECT user_id FROM posts WHERE id=?");
 $stmt->bind_param("i", $pid);
 $stmt->execute();
 $stmt->bind_result($uid);
-if (!$stmt->fetch()) exit('Post not found.');
+if (!$stmt->fetch()) {
+    $stmt->close();
+    header("Location: all.php?error=notfound");
+    exit;
+}
 $stmt->close();
 
-if ($uid !== $_SESSION['user_id']) exit('Unauthorized.');
+if ($uid !== $_SESSION['user_id']) {
+    header("Location: all.php?error=unauthorized");
+    exit;
+}
 
-$conn->query("DELETE FROM posts WHERE id=$pid");
-echo "✅ Post deleted.";
+$del = $conn->prepare("DELETE FROM posts WHERE id=?");
+$del->bind_param("i", $pid);
+if ($del->execute()) {
+    $del->close();
+    header("Location: all.php?msg=deleted");
+    exit;
+} else {
+    $del->close();
+    header("Location: all.php?error=deletefail");
+    exit;
+}
 ?>
