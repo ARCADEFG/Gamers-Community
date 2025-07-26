@@ -51,7 +51,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $error = "❌ Invalid email format.";
             } else {
-                $stmt = $conn->prepare("SELECT id, username, password, avatar FROM users WHERE email = ?");
+                $stmt = $conn->prepare("SELECT id, username, password, avatar FROM users WHERE username=?");
                 $stmt->bind_param("s", $email);
                 $stmt->execute();
                 $stmt->store_result();
