@@ -33,39 +33,48 @@
         echo '</body></html>';
         exit;
     }
-    $stmt = $conn->prepare("SELECT * FROM posts WHERE id = ? AND user_id = ?");
-    $stmt->bind_param("ii", $post_id, $_SESSION['user_id']);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $post = $result->fetch_assoc();
-    if (!$post) {
-        echo "<div class='error'>Post not found or you're not allowed to edit it.</div>";
+
+    try {
+        $stmt = $conn->prepare("SELECT * FROM posts WHERE id = ? AND user_id = ?");
+        $stmt->bind_param("ii", $post_id, $_SESSION['user_id']);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $post = $result->fetch_assoc();
+
+        if (!$post) {
+            echo "<div class='error'>Post not found or you're not allowed to edit it.</div>";
+            include '../includes/footer.php';
+            echo '</body></html>';
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $title = trim($_POST['title'] ?? '');
+            $content = trim($_POST['content'] ?? '');
+            $game_name = trim($_POST['game_name'] ?? '');
+            $errors = [];
+            if ($title === '') $errors[] = 'Title is required.';
+            if ($content === '') $errors[] = 'Content is required.';
+            if ($game_name === '') $errors[] = 'Game name is required.';
+            if (empty($errors)) {
+                $update = $conn->prepare("UPDATE posts SET title = ?, content = ?, game_name = ? WHERE id = ?");
+                $update->bind_param("sssi", $title, $content, $game_name, $post_id);
+                if ($update->execute()) {
+                    header("Location: view_post.php?id=$post_id");
+                    exit;
+                } else {
+                    // This else block will now likely only be reached for non-exception errors
+                    echo "<div class='error'>Update failed: Please try again.</div>";
+                }
+            }
+        } // End of POST request handling
+
+    } catch (mysqli_sql_exception $e) {
+        error_log("Database error in edit_post.php: " . $e->getMessage());
+        echo "<div class='error'>&#x274c; A database error occurred. Please try again later.</div>";
         include '../includes/footer.php';
         echo '</body></html>';
         exit;
-    }
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $title = trim($_POST['title'] ?? '');
-        $content = trim($_POST['content'] ?? '');
-        $game_name = trim($_POST['game_name'] ?? '');
-        $errors = [];
-        if ($title === '') $errors[] = 'Title is required.';
-        if ($content === '') $errors[] = 'Content is required.';
-        if ($game_name === '') $errors[] = 'Game name is required.';
-        if (empty($errors)) {
-            $update = $conn->prepare("UPDATE posts SET title = ?, content = ?, game_name = ? WHERE id = ?");
-            $update->bind_param("sssi", $title, $content, $game_name, $post_id);
-            if ($update->execute()) {
-                header("Location: view_post.php?id=$post_id");
-                exit;
-            } else {
-                echo "<div class='error'>Update failed: " . htmlspecialchars($update->error) . "</div>";
-            }
-        } else {
-            foreach ($errors as $err) {
-                echo "<div class='error'>" . htmlspecialchars($err) . "</div>";
-            }
-        }
     }
     ?>
     <form method="post" enctype="multipart/form-data" class="create-post-form" style="width:95%;">
@@ -94,3 +103,4 @@
 <?php include '../includes/footer.php'; ?>
 </body>
 </html>
+
