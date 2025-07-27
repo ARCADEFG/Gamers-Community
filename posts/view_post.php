@@ -10,24 +10,42 @@ $postId = $_GET['id'] ?? 0;
 $uid = $_SESSION['user_id'] ?? null; // Get user ID from session
 
 // Fetch post details
-$stmt = $conn->prepare("SELECT posts.id, posts.title, posts.content, posts.created_at, posts.user_id, users.username, posts.media_path, posts.media_type, posts.game_name, (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count" . ($uid ? ", (SELECT 1 FROM post_likes WHERE post_id = ? AND user_id = ?) as liked" : "") . " FROM posts JOIN users ON users.id = posts.user_id WHERE posts.id = ?");
+try {
+    $stmt = $conn->prepare("SELECT posts.id, posts.title, posts.content, posts.created_at, posts.user_id, users.username, posts.media_path, posts.media_type, posts.game_name, (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count" . ($uid ? ", (SELECT 1 FROM post_likes WHERE post_id = ? AND user_id = ?) as liked" : "") . " FROM posts JOIN users ON users.id = posts.user_id WHERE posts.id = ?");
 
-if ($stmt === false) {
-    die('Prepare failed: ' . htmlspecialchars($conn->error));
+    if ($stmt === false) {
+        throw new mysqli_sql_exception('Failed to prepare post statement.');
+    }
+
+    if ($uid) {
+        $stmt->bind_param("iii", $postId, $uid, $postId); // postId for liked subquery, uid, then postId for main query
+    } else {
+        $stmt->bind_param("i", $postId);
+    }
+
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $post = $result->fetch_assoc();
+
+    // Fetch comments
+    $comments_stmt = $conn->prepare("SELECT comments.*, users.username FROM comments JOIN users ON comments.user_id = users.id WHERE comments.post_id = ? ORDER BY comments.created_at ASC");
+    if ($comments_stmt === false) {
+        throw new mysqli_sql_exception('Failed to prepare comments statement.');
+    }
+    $comments_stmt->bind_param("i", $postId);
+    $comments_stmt->execute();
+    $comments_result = $comments_stmt->get_result();
+
+} catch (mysqli_sql_exception $e) {
+    error_log("Database error in view_post.php: " . $e->getMessage());
+    $post = false; // Indicate that post could not be fetched
+    $comments_result = false; // Indicate that comments could not be fetched
+    // Optionally, redirect or show a generic error message
+    echo "<div class='error'>&#x274c; A database error occurred while loading this post. Please try again later.</div>";
 }
-
-if ($uid) {
-    $stmt->bind_param("iii", $postId, $uid, $postId); // postId for liked subquery, uid, then postId for main query
-} else {
-    $stmt->bind_param("i", $postId);
-}
-
-$stmt->execute();
-$result = $stmt->get_result();
-$post = $result->fetch_assoc();
 
 if (!$post) {
-    // Redirect or show error if post not found
+    // Redirect or show error if post not found due to ID or DB error
     header("Location: all.php?error=postnotfound");
     exit;
 }
@@ -35,12 +53,6 @@ if (!$post) {
 $isOwner = $uid && $uid == $post['user_id'];
 $current_post_liked = $post['liked'] ?? 0;
 $current_like_count = $post['like_count'];
-
-// Fetch comments
-$comments_stmt = $conn->prepare("SELECT comments.*, users.username FROM comments JOIN users ON comments.user_id = users.id WHERE comments.post_id = ? ORDER BY comments.created_at ASC");
-$comments_stmt->bind_param("i", $postId);
-$comments_stmt->execute();
-$comments_result = $comments_stmt->get_result();
 
 ?>
 <!DOCTYPE html>
@@ -284,3 +296,4 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+
