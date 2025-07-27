@@ -33,24 +33,33 @@ if ($uid) {
     $types = 'i' . $types; // Prepend 'i' for integer
 }
 
-$stmt = $conn->prepare($sql);
-if ($stmt === false) {
-    die('Prepare failed: ' . htmlspecialchars($conn->error));
-}
-
-if (!empty($params)) {
-    // Dynamically bind parameters based on their types
-    $bind_names[] = &$types;
-    for ($i = 0; $i < count($params); $i++) {
-        $bind_name = 'bind' . $i;
-        $$bind_name = $params[$i];
-        $bind_names[] = &$$bind_name;
+try {
+    $stmt = $conn->prepare($sql);
+    if ($stmt === false) {
+        // If prepare fails, it will now throw an exception due to mysqli_report
+        // This line might become redundant but kept for clarity/fallback
+        throw new mysqli_sql_exception('Failed to prepare statement.');
     }
-    call_user_func_array([$stmt, 'bind_param'], $bind_names);
-}
 
-$stmt->execute();
-$res = $stmt->get_result();
+    if (!empty($params)) {
+        // Dynamically bind parameters based on their types
+        $bind_names[] = &$types;
+        for ($i = 0; $i < count($params); $i++) {
+            $bind_name = 'bind' . $i;
+            $$bind_name = $params[$i];
+            $bind_names[] = &$$bind_name;
+        }
+        call_user_func_array([$stmt, 'bind_param'], $bind_names);
+    }
+
+    $stmt->execute();
+    $res = $stmt->get_result();
+} catch (mysqli_sql_exception $e) {
+    error_log("Database error in all.php: " . $e->getMessage());
+    // Handle the error gracefully, maybe show a message to the user or redirect
+    $res = false; // Indicate that results could not be fetched
+    echo "<div class='error'>&#x274c; A database error occurred while fetching posts. Please try again later.</div>";
+}
 
 ?>
 <!DOCTYPE html>
