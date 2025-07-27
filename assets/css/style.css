@@ -27,7 +27,7 @@ header {
   border-bottom: 2px solid var(--primary);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
   will-change: transform, padding, backdrop-filter;
 }
@@ -73,7 +73,9 @@ nav {
   margin-top: 1em;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
   gap: 0.8em;
   transition: all 0.3s ease;
 }
@@ -173,6 +175,10 @@ nav a i {
   position: relative;
   display: inline-block;
   margin-left: auto;
+}
+
+.user-dropdown-container {
+margin-left: auto;
 }
 
 .user-menu-toggle {
@@ -316,57 +322,102 @@ nav a i {
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   header {
-    padding: 1em;
+    padding: 0.8rem;
   }
   
-  header.scrolled {
-    padding: 0.4em;
+  .header-content {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .header-main {
+    order: 1;
+    width: 100%;
+  }
+  
+  nav {
+    order: 3;
+    width: 100%;
+    margin-top: 0.5rem;
+    justify-content: center;
   }
   
   .user-dropdown {
-    position: static;
+    order: 2;
+    margin-left: 0;
+  }
+  
+  header.scrolled {
+    padding: 0.4rem;
+  }
+  
+  header.scrolled .header-content {
+    flex-direction: row;
+  }
+  
+  header.scrolled nav {
+    display: none;
   }
   
   .dropdown-menu {
-    width: calc(100% - 30px);
-    right: auto;
-    left: 15px;
-    top: calc(100% + 10px);
-    border-radius: 12px;
+    width: calc(50vw - 2rem);
+    right: 1rem;
+    left: auto;
+    top: calc(100% + 5px);
   }
   
   .dropdown-menu::before {
     display: none;
   }
   
-  .logout-button {
-    padding-left: 48px;
+  .user-menu-toggle .username-text {
+    display: none;
+  }
+  
+  nav a {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+  
+  nav a i {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 2rem;
+    margin: 0.5em 0;
+  }
+  
+  .tagline {
+    font-size: 0.8rem;
+    margin-bottom: 0.5em;
+  }
+  
+  nav {
+    gap: 0.3rem;
+  }
+  
+  nav a {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
   }
   
   .user-menu-toggle {
-    padding: 8px 12px;
+    padding: 6px 8px;
   }
   
-  header.scrolled .user-menu-toggle {
-    padding: 5px 8px;
+  .user-avatar {
+    width: 28px;
+    height: 28px;
   }
   
   header.scrolled .user-avatar {
     width: 24px;
     height: 24px;
-  }
-  
-  header.scrolled .username-text {
-    display: none;
-  }
-  
-  nav a {
-    padding: 0.5em 1em;
-    font-size: 1em;
-  }
-  
-  header.scrolled nav a {
-    padding: 0.4em 0.8em;
   }
 }
 
