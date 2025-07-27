@@ -11,6 +11,17 @@
 <body>
 <?php include '../includes/header.php'; ?>
 <?php
+
+// Define base paths
+require_once __DIR__ . '/../config/config.php';
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: " . WEB_BASE . "auth/login.php");
+    exit;
+}
+
+$uid = $_SESSION['user_id'];
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -56,20 +67,14 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
     if (empty($errors)) {
-        try {
-            $stmt = $conn->prepare("INSERT INTO posts (user_id, title, content, game_name, media_path, media_type) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("isssss", $uid, $title, $content, $game_name, $media_path, $media_type);
-            if ($stmt->execute()) {
-                echo "<div class='success' style='background:linear-gradient(90deg,#4e54c8,#8f94fb);color:#fff;padding:1em 1.5em;border-radius:8px;display:flex;align-items:center;gap:0.7em;font-size:1.15em;font-family:Montserrat,sans-serif;margin-bottom:1.2em;box-shadow:0 2px 8px rgba(0,0,0,0.13);'><i class='fa-solid fa-circle-check' style='color:#00e676;font-size:1.5em;'></i>Post created successfully!</div>";
-            } else {
-                // This else block will now likely only be reached if execute() returns false for non-exception reasons
-                echo "<div class='error'>&#x274c; Failed to create post. Please try again.</div>";
-            }
-            $stmt->close();
-        } catch (mysqli_sql_exception $e) {
-            error_log("Database error during post creation: " . $e->getMessage());
-            echo "<div class='error'>&#x274c; A database error occurred while creating your post. Please try again later.</div>";
+        $stmt = $conn->prepare("INSERT INTO posts (user_id, title, content, game_name, media_path, media_type) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("isssss", $uid, $title, $content, $game_name, $media_path, $media_type);
+        if ($stmt->execute()) {
+            echo "<div class='success' style='background:linear-gradient(90deg,#4e54c8,#8f94fb);color:#fff;padding:1em 1.5em;border-radius:8px;display:flex;align-items:center;gap:0.7em;font-size:1.15em;font-family:Montserrat,sans-serif;margin-bottom:1.2em;box-shadow:0 2px 8px rgba(0,0,0,0.13);'><i class='fa-solid fa-circle-check' style='color:#00e676;font-size:1.5em;'></i>Post created successfully!</div>";
+        } else {
+            echo "<div class='error'>&#x274c; " . htmlspecialchars($stmt->error) . "</div>";
         }
+        $stmt->close();
     } else {
         foreach ($errors as $err) {
             echo "<div class='error'>&#x274c; " . htmlspecialchars($err) . "</div>";
