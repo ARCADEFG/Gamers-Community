@@ -10,42 +10,24 @@ $postId = $_GET['id'] ?? 0;
 $uid = $_SESSION['user_id'] ?? null; // Get user ID from session
 
 // Fetch post details
-try {
-    $stmt = $conn->prepare("SELECT posts.id, posts.title, posts.content, posts.created_at, posts.user_id, users.username, posts.media_path, posts.media_type, posts.game_name, (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count" . ($uid ? ", (SELECT 1 FROM post_likes WHERE post_id = ? AND user_id = ?) as liked" : "") . " FROM posts JOIN users ON users.id = posts.user_id WHERE posts.id = ?");
+$stmt = $conn->prepare("SELECT posts.id, posts.title, posts.content, posts.created_at, posts.user_id, users.username, posts.media_path, posts.media_type, posts.game_name, (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) as like_count" . ($uid ? ", (SELECT 1 FROM post_likes WHERE post_id = ? AND user_id = ?) as liked" : "") . " FROM posts JOIN users ON users.id = posts.user_id WHERE posts.id = ?");
 
-    if ($stmt === false) {
-        throw new mysqli_sql_exception('Failed to prepare post statement.');
-    }
-
-    if ($uid) {
-        $stmt->bind_param("iii", $postId, $uid, $postId); // postId for liked subquery, uid, then postId for main query
-    } else {
-        $stmt->bind_param("i", $postId);
-    }
-
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $post = $result->fetch_assoc();
-
-    // Fetch comments
-    $comments_stmt = $conn->prepare("SELECT comments.*, users.username FROM comments JOIN users ON comments.user_id = users.id WHERE comments.post_id = ? ORDER BY comments.created_at ASC");
-    if ($comments_stmt === false) {
-        throw new mysqli_sql_exception('Failed to prepare comments statement.');
-    }
-    $comments_stmt->bind_param("i", $postId);
-    $comments_stmt->execute();
-    $comments_result = $comments_stmt->get_result();
-
-} catch (mysqli_sql_exception $e) {
-    error_log("Database error in view_post.php: " . $e->getMessage());
-    $post = false; // Indicate that post could not be fetched
-    $comments_result = false; // Indicate that comments could not be fetched
-    // Optionally, redirect or show a generic error message
-    echo "<div class='error'>&#x274c; A database error occurred while loading this post. Please try again later.</div>";
+if ($stmt === false) {
+    die('Prepare failed: ' . htmlspecialchars($conn->error));
 }
 
+if ($uid) {
+    $stmt->bind_param("iii", $postId, $uid, $postId); // postId for liked subquery, uid, then postId for main query
+} else {
+    $stmt->bind_param("i", $postId);
+}
+
+$stmt->execute();
+$result = $stmt->get_result();
+$post = $result->fetch_assoc();
+
 if (!$post) {
-    // Redirect or show error if post not found due to ID or DB error
+    // Redirect or show error if post not found
     header("Location: all.php?error=postnotfound");
     exit;
 }
@@ -53,6 +35,12 @@ if (!$post) {
 $isOwner = $uid && $uid == $post['user_id'];
 $current_post_liked = $post['liked'] ?? 0;
 $current_like_count = $post['like_count'];
+
+// Fetch comments
+$comments_stmt = $conn->prepare("SELECT comments.*, users.username FROM comments JOIN users ON comments.user_id = users.id WHERE comments.post_id = ? ORDER BY comments.created_at ASC");
+$comments_stmt->bind_param("i", $postId);
+$comments_stmt->execute();
+$comments_result = $comments_stmt->get_result();
 
 ?>
 <!DOCTYPE html>
@@ -67,20 +55,104 @@ $current_like_count = $post['like_count'];
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         /* Specific styles for view_post.php */
-        .post-container { 
-            background: #23233a;
-            border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-            overflow: hidden;
-            margin-bottom: 2em;
-        }
-        .post-header { padding: 1.5em; border-bottom: 1px solid #35355a; }
-        .post-header h1 { font-family: 'Orbitron', sans-serif; font-size: 2.5em; margin: 0 0 0.2em 0; letter-spacing: 1px; font-weight: 800; color:var(--primary); }
-        .post-meta { color: #b0b0b0; font-size: 0.95em; }
-        .post-game-name { font-family: 'Orbitron', sans-serif; color: #8f94fb; font-size: 1.1em; margin-bottom: 0.5em; }
-        .post-content-body { padding: 1.5em; font-size: 1.15em; line-height: 1.7; color: #f4f4f4; font-family: 'Montserrat', sans-serif; }
-        .media-container { text-align:center;padding:1em 0 0.5em 0;min-height:180px;display:flex;align-items:center;justify-content:center;background:#23233a; }
-        .media-container img, .media-container video { max-width:96%;max-height:340px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.15);object-fit:cover; }
+        .post-container {
+    background: #23233a;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    margin-bottom: 2em;
+    position: relative; /* Added for better z-index control */
+    color: #f4f4f4; /* Base text color */
+    font-family: 'Montserrat', sans-serif; /* Base font */
+    z-index: 1; 
+}
+
+.post-header {
+    padding: 1.5em;
+    border-bottom: 1px solid #35355a;
+    background: linear-gradient(to right, #23233a, #2a2a45);
+}
+
+.post-header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.5em;
+    margin: 0 0 0.2em 0;
+    letter-spacing: 1px;
+    font-weight: 800;
+    color: var(--primary);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.post-meta {
+    color: #b0b0b0;
+    font-size: 0.95em;
+    display: flex;
+    gap: 1em;
+    align-items: center;
+}
+
+.post-game-name {
+    font-family: 'Orbitron', sans-serif;
+    color: #8f94fb;
+    font-size: 1.1em;
+    margin: 0.5em 0;
+    display: inline-block;
+    padding: 0.3em 0.8em;
+    background: rgba(143, 148, 251, 0.1);
+    border-radius: 20px;
+}
+
+.post-content-body {
+    padding: 1.5em;
+    font-size: 1.15em;
+    line-height: 1.7;
+    color: inherit; /* Inherits from .post-container */
+}
+
+.media-container {
+    text-align: center;
+    padding: 1em 0;
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1d1d32;
+    margin: 0 1.5em 1.5em;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.media-container img,
+.media-container video {
+    max-width: 96%;
+    max-height: 340px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    object-fit: contain; /* Changed from 'cover' to 'contain' for better media display */
+    transition: transform 0.3s ease;
+}
+
+.media-container img:hover,
+.media-container video:hover {
+    transform: scale(1.02);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .post-header h1 {
+        font-size: 2em;
+    }
+    
+    .media-container {
+        margin: 0 0 1em 0;
+        border-radius: 0;
+    }
+    
+    .post-content-body {
+        padding: 1em;
+        font-size: 1em;
+    }
+}
 
         .post-actions-footer { display: flex; align-items: center; justify-content: space-between; padding: 0 1.5em 1.5em 1.5em; }
         .like-comment-group { display: flex; align-items: center; gap: 1.2em; }
@@ -203,36 +275,38 @@ $current_like_count = $post['like_count'];
             </div>
         </article>
 
-        <section class="comments-section" id="comments">
-            <h3><i class="fa-solid fa-comments" style="margin-right:0.5em;"></i>Comments</h3>
-            <?php if ($comments_result->num_rows > 0): ?>
-                <div class="comments-list">
-                    <?php while ($comment = $comments_result->fetch_assoc()): ?>
-                        <div class="comment">
-                            <p class="comment-meta"><strong><?= htmlspecialchars($comment['username']) ?></strong> on <?= $comment['created_at'] ?></p>
-                            <p class="comment-content"><?= nl2br(htmlspecialchars($comment['content'])) ?></p>
-                        </div>
-                    <?php endwhile; ?>
+    <section class="comments-section" id="comments">
+    <h3><i class="fa-solid fa-comments" style="margin-right:0.5em;"></i>Comments</h3>
+    <?php 
+    // Make sure $comments_result is properly set before using it
+    if (isset($comments_result) && $comments_result->num_rows > 0): ?>
+        <div class="comments-list">
+            <?php while ($comment = $comments_result->fetch_assoc()): ?>
+                <div class="comment">
+                    <p class="comment-meta"><strong><?= htmlspecialchars($comment['username']) ?></strong> on <?= $comment['created_at'] ?></p>
+                    <p class="comment-content"><?= nl2br(htmlspecialchars($comment['content'])) ?></p>
                 </div>
-            <?php else: ?>
-                <p style="color:#b0b0b0;text-align:center;">No comments yet. Be the first to comment!</p>
-            <?php endif; ?>
+            <?php endwhile; ?>
+        </div>
+    <?php else: ?>
+        <p style="color:#b0b0b0;text-align:center;">No comments yet. Be the first to comment!</p>
+    <?php endif; ?>
 
-            <?php if (isset($_SESSION['user_id'])): ?>
-                <div class="comment-form">
-                    <h4>Add a Comment</h4>
-                    <form action="comment_post.php" method="POST">
-                        <input type="hidden" name="post_id" value="<?= $post['id'] ?>">
-                        <textarea name="comment_text" placeholder="Write your comment..." required></textarea>
-                        <button type="submit">Post Comment</button>
-                    </form>
-                </div>
-            <?php else: ?>
-                <div class="auth-prompt">
-                    <p>Please <a href="../auth/login.php">login</a> or <a href="../auth/register.php">register</a> to add a comment.</p>
-                </div>
-            <?php endif; ?>
-        </section>
+    <?php if (isset($_SESSION['user_id'])): ?>
+        <div class="comment-form">
+            <h4>Add a Comment</h4>
+            <form action="comment_post.php" method="POST">
+                <input type="hidden" name="post_id" value="<?= $post['id'] ?>">
+                <textarea name="comment_text" placeholder="Write your comment..." required></textarea>
+                <button type="submit">Post Comment</button>
+            </form>
+        </div>
+    <?php else: ?>
+        <div class="auth-prompt">
+            <p>Please <a href="../auth/login.php">login</a> or <a href="../auth/register.php">register</a> to add a comment.</p>
+        </div>
+    <?php endif; ?>
+    </section>
 
     <?php else: // Post not found ?>
         <div style="text-align:center;margin-top:5em;font-size:1.2em;color:#e74c3c;">
@@ -296,4 +370,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
-
