@@ -1,65 +1,31 @@
 <?php
 session_start();
-include '../config/db.php';
-if (!isset($_SESSION['user_id'])) exit('Login required');
+require_once '../config/db.php';
 
-$postId = $_POST['post_id'] ?? null;
-$content = trim($_POST['content'] ?? '');
-$uid = $_SESSION['user_id'];
-
-// Validate post existence
-if (!$postId || !is_numeric($postId)) {
-    header("Location: view_post.php?id=" . urlencode($postId) . "&error=invalidpost");
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../auth/login.php?error=notloggedin");
     exit;
 }
-$postId = (int)$postId;
 
-// Validate post existence
-try {
-    $postCheck = $conn->prepare("SELECT id FROM posts WHERE id = ?");
-    if ($postCheck === false) {
-        throw new mysqli_sql_exception('Failed to prepare statement for post check.');
-    }
-    $postCheck->bind_param("i", $postId);
-    $postCheck->execute();
-    $postCheck->store_result();
-    if ($postCheck->num_rows === 0) {
-        $postCheck->close();
-        header("Location: all.php?error=postnotfound");
-        exit;
-    }
-    $postCheck->close();
-
-    // Validate comment
-    $maxLength = 500;
-    if ($content === '') {
-        header("Location: view_post.php?id=$postId&error=emptycomment");
-        exit;
-    }
-    if (mb_strlen($content) > $maxLength) {
-        header("Location: view_post.php?id=$postId&error=commenttoolong");
-        exit;
-    }
-
-    $stmt = $conn->prepare("INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)");
-    if ($stmt === false) {
-        throw new mysqli_sql_exception('Failed to prepare statement for comment insertion.');
-    }
-    $stmt->bind_param("iis", $postId, $uid, $content);
-    if ($stmt->execute()) {
-        $stmt->close();
-        header("Location: view_post.php?id=$postId&msg=commentsuccess");
-        exit;
-    } else {
-        // This else block will now likely only be reached for non-exception errors
-        header("Location: view_post.php?id=$postId&error=commentfail");
-        exit;
-    }
-} catch (mysqli_sql_exception $e) {
-    error_log("Database error in comment_post.php: " . $e->getMessage());
-    header("Location: view_post.php?id=$postId&error=db_error&message=" . urlencode("A database error occurred while adding your comment."));
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: view_post.php?id=" . ($_POST['post_id'] ?? ''));
     exit;
 }
+
+$post_id = (int)($_POST['post_id'] ?? 0);
+$user_id = (int)$_SESSION['user_id'];
+$comment_text = trim($_POST['comment_text'] ?? '');
+
+if (empty($comment_text)) {
+    header("Location: view_post.php?id=$post_id&error=emptycomment");
+    exit;
+}
+
+$stmt = $conn->prepare("INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)");
+$stmt->bind_param("iis", $post_id, $user_id, $comment_text);
+$stmt->execute();
+
+// Redirect back to the post
+header("Location: view_post.php?id=$post_id");
+exit;
 ?>
-
-
