@@ -51,7 +51,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $error = "❌ Invalid email format.";
             } else {
-                $stmt = $conn->prepare("SELECT id, username, password, avatar FROM users WHERE username=?");
+                $stmt = $conn->prepare("SELECT id, username, password, avatar FROM users WHERE email = ?");
                 $stmt->bind_param("s", $email);
                 $stmt->execute();
                 $stmt->store_result();
@@ -89,6 +89,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -209,7 +210,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     border-radius: 4px;
     cursor: pointer;
     font-size: 1em;
-    flex: 2;
+    flex: 1;
     min-width: 120px;
     transition: all 0.3s;
     display: flex;
@@ -295,9 +296,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         flex-direction: column;
     }
     
-    .btn-login,
-    .btn-forgot {
+    .btn-login {
         width: 100%;
+        flex: none;
+    }
+
+    .btn-forgot {
+        width: 90%;
         flex: none;
     }
 }
